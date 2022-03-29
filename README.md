@@ -10,3 +10,8 @@ kubectl插件可以使用任意语言开发，如可以是一个bash、python的
 https://segmentfault.com/a/1190000004976222
 
 https://blog.csdn.net/u014153701/article/details/47831109
+
+
+# wsl 重启
+net stop LxssManager
+net start LxssManager
