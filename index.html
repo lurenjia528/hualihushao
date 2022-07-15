@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+<form method="POST" enctype="multipart/form-data" onsubmit="return false;"><input id="file" type="file" placeholder="select a file"></form>
+</body>
+<script src="./wasm_exec.js"></script>
+<script>
+    let s=0;
+    document.getElementById("file").addEventListener("change", function() {
+        s = Date.now();
+        var blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice;
+        const file = this.files[0];
+        chunkSize = 20971520; // read in chunks of 2MB
+        chunks = Math.ceil(file.size / chunkSize);
+        currentChunk = 0;
+
+        const go = new Go()
+        WebAssembly.instantiateStreaming(fetch('main.wasm'), go.importObject)
+            .then(async result => {
+                go.run(result.instance);
+                frOnload = function(e){
+                    const bytes = new Uint8Array(e.target.result)
+                    receiveB(bytes);
+                    currentChunk++;
+                    if (currentChunk < chunks) {
+                        loadNext();
+                    }else {
+                        aaa=getR();
+                        console.log('time:',  Date.now() - s);
+                        console.log("md5:",aaa)
+                    }
+                };
+                function loadNext() {
+                    var fileReader = new FileReader();
+                    fileReader.onload = frOnload;
+                    var start = currentChunk * chunkSize,
+                        end = ((start + chunkSize) >= file.size) ? file.size : start + chunkSize;
+                    fileReader.readAsArrayBuffer(blobSlice.call(file, start, end));
+                };
+                loadNext();
+            });
+
+    });
+</script>
+
+
+
+<!--好用的-->
+<!--<script>-->
+<!--    let s=0;-->
+<!--    // 全局的target对象，供go端访问-->
+<!--    // var target = {-->
+<!--    //     // go端会调用该方法来传递计算的结果-->
+<!--    //     // callback(md5) {-->
+<!--    //     //     // 打印结果到控制台-->
+<!--    //     //     console.log('文件的md5为：', md5);-->
+<!--    //     //     console.log('time:',  Date.now() - s);-->
+<!--    //     // }-->
+<!--    // }-->
+<!--    document.getElementById("file").addEventListener("change", function() {-->
+<!--        s = Date.now();-->
+<!--        const file = this.files[0];-->
+<!--        console.log(file)-->
+<!--        fr = new FileReader()-->
+<!--        fr.readAsArrayBuffer(file)-->
+<!--        const go = new Go()-->
+<!--        WebAssembly.instantiateStreaming(fetch('o.wasm'), go.importObject)-->
+<!--            .then(async result => {-->
+<!--                go.run(result.instance);-->
+
+<!--                fr.onloadend=function () {-->
+
+<!--                    // 获取文件的ArrayBuffer对象-->
+<!--                    // var buffer = await file.arrayBuffer();-->
+<!--                    var buffer =  fr.result;-->
+<!--                    // // 转换为Uint8Array-->
+<!--                    var bytes = new Uint8Array(buffer)-->
+<!--                    // console.log(bytes)-->
+<!--                    // // 调用target对象上的calcMd5方法（这个方法由Go提供，挂载到target上）-->
+<!--                    a = calcMd5(bytes);-->
+<!--                    // a = calcMd5(bytes);-->
+<!--                    console.log('文件的md5为：', a);-->
+<!--                    console.log('time:',  Date.now() - s);-->
+<!--                    bytes = new Uint8Array(0)-->
+<!--                    buffer = null;-->
+<!--                    a=null-->
+<!--                    this.file=null-->
+<!--                    // target=null-->
+<!--                    fr.abort()-->
+<!--                    // target = {}-->
+<!--                };-->
+<!--                this.go=null-->
+<!--            });-->
+<!--        file.length=0-->
+<!--    });-->
+<!--</script>-->
+</html>
